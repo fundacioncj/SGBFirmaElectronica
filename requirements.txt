@@ -5,3 +5,4 @@ cryptography
 python-multipart
 qrcode[pil]
 PyMuPDF
+attrs

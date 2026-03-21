@@ -15,7 +15,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 app = FastAPI(title="Firma Digital Service")
 
-STORAGE_PATH = os.getenv("CERTIFICADOS_STORAGE_PATH", "/app/certificados")
+STORAGE_PATH = os.getenv("CERTIFICADOS_STORAGE_PATH", "/home/boris/firma/ASSETS/certs/")
 
 
 def generate_qr_bytes(nombre: str, fecha: str, razon: str) -> bytes:
