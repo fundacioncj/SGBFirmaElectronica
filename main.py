@@ -6,7 +6,6 @@ from cryptography.x509.oid import NameOID
 from dotenv import load_dotenv
 from endesive.pdf import cms
 import datetime
-import os
 import io
 import qrcode
 import fitz  # PyMuPDF
@@ -14,8 +13,6 @@ import fitz  # PyMuPDF
 load_dotenv()
 
 app = FastAPI(title="Firma Digital Service")
-
-STORAGE_PATH = os.getenv("CERTIFICADOS_STORAGE_PATH", "/home/boris/firma/ASSETS/certs/")
 
 
 def generate_qr_bytes(nombre: str, fecha: str, razon: str) -> bytes:
@@ -65,7 +62,7 @@ def stamp_qr_on_pdf(
 @app.post("/sign")
 async def sign_pdf(
     pdf: UploadFile,
-    cedula: str = Form(...),
+    p12_file: UploadFile,
     pin: str = Form(...),
     x: float = Form(36),
     y: float = Form(50),
@@ -74,20 +71,13 @@ async def sign_pdf(
     page: int = Form(1),
     include_qr: bool = Form(True),
 ):
-    p12_path = os.path.join(STORAGE_PATH, f"{cedula}.p12")
-    print(f"[FIRMA] Buscando certificado en: {p12_path}")
-    print(f"[FIRMA] Existe el archivo: {os.path.exists(p12_path)}")
-    if not os.path.exists(p12_path):
-        print(f"[FIRMA] ERROR: Certificado no encontrado para cédula '{cedula}'")
-        raise HTTPException(status_code=404, detail=f"Certificado no encontrado: {cedula}.p12")
-
     try:
         password = pin.encode("utf-8")
-        print(f"[FIRMA] Cargando certificado .p12...")
-        with open(p12_path, "rb") as f:
-            p12 = pkcs12.load_key_and_certificates(
-                f.read(), password, backends.default_backend()
-            )
+        print(f"[FIRMA] Cargando certificado .p12 recibido...")
+        p12_bytes = await p12_file.read()
+        p12 = pkcs12.load_key_and_certificates(
+            p12_bytes, password, backends.default_backend()
+        )
         print(f"[FIRMA] Certificado cargado correctamente")
     except Exception as e:
         print(f"[FIRMA] ERROR al cargar certificado: {e}")
@@ -96,7 +86,7 @@ async def sign_pdf(
     # Extraer nombre del certificado
     cert = p12[1]
     cn_attrs = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
-    nombre = cn_attrs[0].value if cn_attrs else cedula
+    nombre = cn_attrs[0].value if cn_attrs else p12_file.filename
     print(f"[FIRMA] Nombre extraído del certificado: {nombre}")
 
     fecha = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
