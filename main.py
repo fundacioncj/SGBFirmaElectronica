@@ -11,7 +11,7 @@ import io
 import qrcode
 import fitz  # PyMuPDF
 
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
+load_dotenv()
 
 app = FastAPI(title="Firma Digital Service")
 
